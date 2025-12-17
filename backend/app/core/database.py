@@ -19,6 +19,8 @@ engine = create_engine(
 
 # ✅ THIS IMPORT REGISTERS ALL MODELS
 from app.models import Base
+
+from app.models.base import Base
 # Create tables on startup (ONLY if not exists)
 Base.metadata.create_all(bind=engine)
 
