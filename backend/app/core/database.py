@@ -16,6 +16,12 @@ engine = create_engine(
     pool_pre_ping=True,
 )
 
+
+# ✅ THIS IMPORT REGISTERS ALL MODELS
+from app.models import Base
+# Create tables on startup (ONLY if not exists)
+Base.metadata.create_all(bind=engine)
+
 SessionLocal = sessionmaker(
     autocommit=False,
     autoflush=False,
