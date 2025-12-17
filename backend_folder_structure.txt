@@ -1,0 +1,115 @@
+backend/
+│
+├── app/
+│   ├── main.py
+│   ├── core/
+│   │   ├── config.py
+│   │   ├── database.py
+│   │   ├── security.py
+│   │   └── logging.py
+│   │
+│   ├── models/
+│   │   ├── user_pending.py
+│   │   ├── user_verified.py
+│   │   ├── admin_user.py
+│   │   ├── otp_verification.py
+│   │   └── audit_log.py
+│   │
+│   ├── schemas/
+│   │   ├── auth.py
+│   │   ├── user.py
+│   │   ├── admin.py
+│   │   └── common.py
+│   │
+│   ├── api/
+│   │   ├── deps.py
+│   │   └── v1/
+│   │       ├── router.py
+│   │       ├── auth.py
+│   │       ├── users.py
+│   │       └── admin.py
+│   │
+│   ├── services/
+│   │   ├── otp_service.py
+│   │   ├── email_service.py
+│   │   ├── sms_service.py
+│   │   ├── pdf_service.py
+│   │   └── membership_service.py
+│   │
+│   ├── utils/
+│   │   ├── validators.py
+│   │   ├── file_upload.py
+│   │   └── language.py
+│   │
+│   └── templates/
+│       ├── pdf_en.html
+│       └── pdf_te.html
+│
+├── migrations/
+│   └── versions/
+│
+├── tests/
+│   ├── test_auth.py
+│   ├── test_users.py
+│   └── test_admin.py
+│
+├── .env
+├── requirements.txt
+└── README.md
+
+
+
+🧠 WHY THIS STRUCTURE IS CORRECT
+🔹 main.py
+
+App entry point
+
+Loads routers
+
+Middleware
+
+Startup events
+
+🔹 core/
+
+Config, DB connection, security
+
+Shared across entire app
+
+🔹 models/
+
+SQLAlchemy ORM models
+
+Matches your DB schema
+
+🔹 schemas/
+
+Pydantic models (request/response validation)
+
+🔹 api/v1/
+
+Versioned APIs
+
+Clean separation of concerns
+
+🔹 services/
+
+Business logic
+
+MSG91, Brevo, PDF, Membership ID logic
+
+🔹 templates/
+
+English & Telugu PDF templates
+
+
+
+
+
+
+
+Phase-1 Notes:
+- OTP logic implemented with internal OTP generation
+- Real SMS/Email OTP deferred to Phase-3
+- Backend APIs stable and JWT secured
+- Admin approval workflow complete
