@@ -5,7 +5,7 @@ import uuid
 from datetime import datetime
 from app.models.base import Base
 
-Base = declarative_base()
+
 
 class OTPVerification(Base):
     __tablename__ = "otp_verifications"
