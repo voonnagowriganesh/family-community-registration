@@ -3,6 +3,7 @@ from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.ext.declarative import declarative_base
 import uuid
 from datetime import datetime
+from app.models.base import Base
 
 Base = declarative_base()
 
