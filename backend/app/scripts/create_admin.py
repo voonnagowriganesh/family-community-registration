@@ -22,7 +22,7 @@ if existing_admin:
 else:
     admin = AdminUser(
         username=ADMIN_EMAIL,
-        password=hash_password(ADMIN_PASSWORD),
+        password_hash=hash_password(ADMIN_PASSWORD),
         is_active=True
     )
     db.add(admin)

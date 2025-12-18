@@ -19,6 +19,7 @@ existing_admin = db.query(AdminUser).filter(
 
 if existing_admin:
     print("Admin already exists")
+    
 else:
     admin = AdminUser(
         username=ADMIN_EMAIL,
