@@ -23,7 +23,7 @@ else:
     admin = AdminUser(
         username=ADMIN_EMAIL,
         password_hash=hash_password(ADMIN_PASSWORD),
-        is_active=True
+        role="super_admin"
     )
     db.add(admin)
     db.commit()
