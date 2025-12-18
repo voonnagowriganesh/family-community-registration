@@ -3,10 +3,25 @@ from app.api.v1.router import api_router
 from app.core.database import engine
 from app.models.base import Base
 
+
+
+
 Base.metadata.create_all(bind=engine)
 
 
 app = FastAPI(title="Community Registration API")
+
+
+from fastapi.middleware.cors import CORSMiddleware
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # For now (safe for Phase-1)
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 
 app.include_router(api_router)
 
