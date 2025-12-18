@@ -2,6 +2,12 @@ from app.core.database import SessionLocal
 from app.models.admin_user import AdminUser
 from app.core.security import hash_password
 
+import sys
+import os
+
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.append(BASE_DIR)
+
 ADMIN_EMAIL = "admin"
 ADMIN_PASSWORD = "Admin@123"
 
