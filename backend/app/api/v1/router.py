@@ -1,4 +1,5 @@
-from fastapi import APIRouter
+
+import os
 from app.api.v1 import auth
 
 api_router = APIRouter(prefix="/api/v1")
