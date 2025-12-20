@@ -8,6 +8,8 @@ from app.models.otp_verification import OTPVerification
 from app.api.deps import get_db
 from app.services.sms_service import send_otp_sms
 from app.services.email_service import send_otp_email
+from app.models.user_pending import UserPending
+from app.models.user_verified import UserVerified
 
 
 
@@ -70,6 +72,45 @@ class VerifyOTPRequest(BaseModel):
 def send_otp(payload: SendOTPRequest, db: Session = Depends(get_db)):
     if payload.type not in ["mobile", "email"]:
         raise HTTPException(status_code=400, detail="Invalid verification type")
+    
+    
+    # 🚫 BLOCK OTP IF USER ALREADY REGISTERED (PENDING / VERIFIED)
+    if payload.type == "mobile":
+        exists_pending = db.query(UserPending).filter(
+            UserPending.mobile_number == payload.value
+        ).first()
+        exists_verified = db.query(UserVerified).filter(
+            UserVerified.mobile_number == payload.value
+        ).first()
+
+    elif payload.type == "email":
+        exists_pending = db.query(UserPending).filter(
+            UserPending.email == payload.value
+        ).first()
+        exists_verified = db.query(UserVerified).filter(
+            UserVerified.email == payload.value
+        ).first()
+
+    else:
+        raise HTTPException(status_code=400, detail="Invalid verification type")
+
+    if exists_pending:
+        raise HTTPException(
+            status_code=400,
+            detail="Registration already submitted. Please wait for admin approval."
+        )
+
+    if exists_verified:
+        raise HTTPException(
+            status_code=400,
+            detail="User already registered and approved."
+        )
+
+        
+
+        
+
+
 
     # 1️⃣ FETCH LATEST UNVERIFIED OTP
     last_otp = (
