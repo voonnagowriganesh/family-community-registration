@@ -17,6 +17,10 @@ from fastapi.responses import StreamingResponse
 from app.models.admin_audit_log import AdminAuditLog
 from app.services.email_service import send_approval_email
 from app.services.email_service import send_rejection_email
+from app.models.user_pending import UserPending
+from app.models.user_rejected import UserRejected
+from app.models.admin_audit_log import AdminAuditLog
+
 
 #---
 from datetime import date
@@ -559,6 +563,59 @@ def bulk_approve_users(
 
 
 
+# @router.post("/users/bulk-reject")
+# def bulk_reject_users(
+#     payload: BulkUserActionRequest,
+#     db: Session = Depends(get_db),
+#     current_admin: dict = Depends(get_current_admin)
+# ):
+#     if not payload.reason:
+#         raise HTTPException(status_code=400, detail="Reject reason required")
+
+#     users = (
+#         db.query(UserPending)
+#         .filter(
+#             UserPending.id.in_(payload.user_ids),
+#             UserPending.status == "pending"
+#         )
+#         .all()
+#     )
+
+#     if len(users) != len(payload.user_ids):
+#         raise HTTPException(status_code=400, detail="Invalid selection")
+
+#     for user in users:
+#         user.status = "rejected"
+#         user.reject_reason = payload.reason
+
+#         # 🔹 Send rejection email (only if email exists)
+#         if user.email:
+#             send_rejection_email(
+#                 to_email=user.email,
+#                 full_name=user.full_name,
+#                 desired_name=user.desired_name,
+#                 reason=payload.reason
+#             )
+        
+#         # ADD AUDIT LOG ENTRY PER USER
+#         audit = AdminAuditLog(
+#         admin_id=current_admin.get("sub"),
+#         action="REJECT",
+#         target_type="user",
+#         target_id=user.id,
+#         reason=payload.reason
+#         )
+#         db.add(audit)
+
+    
+
+
+#     db.commit()
+
+#     return {
+#         "message": f"{len(users)} users rejected and via email notified"
+#     }
+
 @router.post("/users/bulk-reject")
 def bulk_reject_users(
     payload: BulkUserActionRequest,
@@ -581,10 +638,52 @@ def bulk_reject_users(
         raise HTTPException(status_code=400, detail="Invalid selection")
 
     for user in users:
-        user.status = "rejected"
-        user.reject_reason = payload.reason
+        # 1️⃣ MOVE TO users_rejected
+        rejected_user = UserRejected(
+            original_pending_id=user.id,
+            mobile_number=user.mobile_number,
+            email=user.email,
+            full_name=user.full_name,
+            surname=user.surname,
+            desired_name=user.desired_name,
+            father_or_husband_name=user.father_or_husband_name,
+            mother_name=user.mother_name,
+            date_of_birth=user.date_of_birth,
+            gender=user.gender,
+            blood_group=user.blood_group,
+            gothram=user.gothram,
+            aaradhya_daiva=user.aaradhya_daiva,
+            kula_devata=user.kula_devata,
+            education=user.education,
+            occupation=user.occupation,
+            house_number=user.house_number,
+            village_city=user.village_city,
+            mandal=user.mandal,
+            district=user.district,
+            state=user.state,
+            country=user.country,
+            pin_code=user.pin_code,
+            photo_url=user.photo_url,
+            referred_by_name=user.referred_by_name,
+            referred_mobile=user.referred_mobile,
+            reject_reason=payload.reason,
+            rejected_by_admin_id=current_admin.get("sub"),
+            created_at=user.created_at
+        )
 
-        # 🔹 Send rejection email (only if email exists)
+        db.add(rejected_user)
+
+        # 2️⃣ AUDIT LOG
+        audit = AdminAuditLog(
+            admin_id=current_admin.get("sub"),
+            action="REJECT",
+            target_type="user",
+            target_id=user.id,
+            reason=payload.reason
+        )
+        db.add(audit)
+
+        # 3️⃣ SEND REJECTION EMAIL (if email exists)
         if user.email:
             send_rejection_email(
                 to_email=user.email,
@@ -592,26 +691,15 @@ def bulk_reject_users(
                 desired_name=user.desired_name,
                 reason=payload.reason
             )
-        
-        # ADD AUDIT LOG ENTRY PER USER
-        audit = AdminAuditLog(
-        admin_id=current_admin.get("sub"),
-        action="REJECT",
-        target_type="user",
-        target_id=user.id,
-        reason=payload.reason
-        )
-        db.add(audit)
 
-    
-
+        # 4️⃣ REMOVE FROM users_pending
+        db.delete(user)
 
     db.commit()
 
     return {
-        "message": f"{len(users)} users rejected and via email notified"
+        "message": f"{len(users)} users rejected and notified successfully"
     }
-
 
 
 
