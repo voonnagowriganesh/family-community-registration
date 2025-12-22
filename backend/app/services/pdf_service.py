@@ -7,13 +7,7 @@ from reportlab.lib.units import inch
 from datetime import datetime
 import os
 import uuid
-import qrcode
-from io import BytesIO
 from reportlab.lib.enums import TA_CENTER, TA_LEFT
-from reportlab.graphics.shapes import Drawing
-from reportlab.graphics.charts.barcharts import VerticalBarChart
-from reportlab.graphics import renderPDF
-from reportlab.graphics.charts.piecharts import Pie
 
 BASE_URL = "https://family-community-registration-production.up.railway.app"
 
@@ -87,12 +81,12 @@ def generate_attractive_pdf(data: dict, language: str = "en") -> str:
     # Add decorative line
     elements.append(Spacer(1, 20))
     
-    # Registration Info Box
+    # Registration Info Box - FIX FOR STATUS LINE
     reg_info = [
         ["Registration ID:", f"KGC-{uuid.uuid4().hex[:8].upper()}"],
         ["Submission Date:", datetime.now().strftime('%d %B, %Y')],
         ["Submission Time:", datetime.now().strftime('%I:%M %p')],
-        ["Status:", "<b><font color='green'>PENDING APPROVAL</font></b>"]
+        ["Status:", Paragraph("<b><font color='green'>PENDING APPROVAL</font></b>", styles['Normal'])]
     ]
     
     reg_table = Table(reg_info, colWidths=[2*inch, 3*inch])
@@ -109,23 +103,24 @@ def generate_attractive_pdf(data: dict, language: str = "en") -> str:
         ('TOPPADDING', (0, 0), (-1, -1), 6),
         ('GRID', (0, 0), (-1, -1), 1, colors.HexColor('#93c5fd')),
         ('BOX', (0, 0), (-1, -1), 2, colors.HexColor('#1e3a8a')),
+        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
     ]))
     
     elements.append(reg_table)
     elements.append(Spacer(1, 30))
     
-    # Personal Information Section
+    # Personal Information Section - FIX FOR SURNAME AND BLOOD GROUP
     elements.append(Paragraph("Personal Information", styles['SectionHeader']))
     
     personal_data = [
         ["Full Name:", data.get("full_name", "N/A")],
-        ["Surname:", f"<b>{data.get('surname', 'N/A')}</b>"],
+        ["Surname:", Paragraph(f"<b>{data.get('surname', 'N/A')}</b>", styles['Normal'])],
         ["Desired Name:", data.get("desired_name", "N/A")],
         ["Father/Husband Name:", data.get("father_or_husband_name", "N/A")],
         ["Mother Name:", data.get("mother_name", "N/A")],
         ["Date of Birth:", data.get("date_of_birth", "N/A")],
         ["Gender:", data.get("gender", "N/A")],
-        ["Blood Group:", f"<font color='red'><b>{data.get('blood_group', 'N/A')}</b></font>"],
+        ["Blood Group:", Paragraph(f"<font color='red'><b>{data.get('blood_group', 'N/A')}</b></font>", styles['Normal'])],
         ["Gothram:", data.get("gothram", "N/A")],
         ["Aaradhya Daiva:", data.get("aaradhya_daiva", "N/A")],
         ["Kula Devata:", data.get("kula_devata", "N/A")],
@@ -145,6 +140,7 @@ def generate_attractive_pdf(data: dict, language: str = "en") -> str:
         ('TOPPADDING', (0, 0), (-1, -1), 8),
         ('GRID', (0, 0), (-1, -1), 1, colors.HexColor('#e5e7eb')),
         ('BOX', (0, 0), (-1, -1), 1, colors.HexColor('#9ca3af')),
+        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
     ]))
     
     elements.append(personal_table)
