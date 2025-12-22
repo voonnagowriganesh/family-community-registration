@@ -55,7 +55,7 @@ class UserRejected(Base):
 
     # Rejection info
     reject_reason = Column(Text, nullable=False)
-    rejected_by_admin_id = Column(UUID(as_uuid=True), nullable=False)
+    rejected_by_admin_id = Column(UUID(as_uuid=True), nullable=True)
     rejected_at = Column(DateTime(timezone=True), server_default=func.now())
 
     # Audit
