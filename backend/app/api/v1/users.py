@@ -8,7 +8,7 @@ from app.api.deps import get_db
 from app.models.user_verified import UserVerified
 import uuid
 
-registration_id = f"KGC-{uuid.uuid4().hex[:8].upper()}"
+
 
 
 
@@ -22,6 +22,7 @@ def register_user(payload: UserRegistrationRequest, db: Session = Depends(get_db
     # =========================
     mobile_number = payload.mobile_number.strip() if payload.mobile_number else None
     email = payload.email.strip() if payload.email else None
+    
 
     # Convert empty string → None
     mobile_number = mobile_number or None
@@ -66,6 +67,7 @@ def register_user(payload: UserRegistrationRequest, db: Session = Depends(get_db
     # =========================
     #pdf_path = generate_pdf(payload.dict(), language="en")
     payload_dict = payload.dict()
+    registration_id = f"KGC-{uuid.uuid4().hex[:8].upper()}"
     payload_dict["registration_id"] = registration_id
 
     pdf_path = generate_pdf(payload_dict, language="en")
