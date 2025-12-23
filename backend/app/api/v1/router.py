@@ -14,3 +14,6 @@ from app.api.v1 import admin
 api_router.include_router(admin.router, tags=["Admin"])
 
 
+from app.api.v1 import upload
+api_router.include_router(upload.router, tags=["Upload"])
+
