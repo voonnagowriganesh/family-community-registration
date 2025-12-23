@@ -83,7 +83,7 @@ def generate_attractive_pdf(data: dict, language: str = "en") -> str:
     
     # Registration Info Box - FIX FOR STATUS LINE
     reg_info = [
-        ["Registration ID:", f"KGC-{uuid.uuid4().hex[:8].upper()}"],
+        ["Registration ID:", data.get("registration_id", "N/A")],
         ["Submission Date:", datetime.now().strftime('%d %B, %Y')],
         ["Submission Time:", datetime.now().strftime('%I:%M %p')],
         ["Status:", Paragraph("<b><font color='green'>PENDING APPROVAL</font></b>", styles['Normal'])]
