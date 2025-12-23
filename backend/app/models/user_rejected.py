@@ -14,6 +14,11 @@ class UserRejected(Base):
     # Original pending reference
     original_pending_id = Column(UUID(as_uuid=True), nullable=False)
 
+    registration_id = Column(
+    String(20),
+    unique=True
+    )
+
     # Identity
     mobile_number = Column(String(15), index=True)
     email = Column(String(255), index=True)

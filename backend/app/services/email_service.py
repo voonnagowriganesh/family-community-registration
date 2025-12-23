@@ -114,6 +114,7 @@ def send_rejection_email(
     to_email: str,
     full_name: str,
     desired_name: str | None,
+    regisration_id: str,
     reason: str
 ):
     configuration = Configuration()
@@ -131,6 +132,7 @@ def send_rejection_email(
           
           <h2 style="color:#c0392b;">Community Registration Update</h2>
 
+          <p>Your Registration ID: <b>{regisration_id}</b></p>
           <p>Dear <b>{display_name}</b>,</p>
 
           <p>

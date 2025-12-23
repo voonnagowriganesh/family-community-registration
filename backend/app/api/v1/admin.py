@@ -653,6 +653,7 @@ def bulk_reject_users(
         # 1️⃣ MOVE TO users_rejected
         rejected_user = UserRejected(
             original_pending_id=user.id,
+            registration_id=user.registration_id,
             mobile_number=user.mobile_number,
             email=user.email,
             full_name=user.full_name,
@@ -700,6 +701,7 @@ def bulk_reject_users(
             send_rejection_email(
                 to_email=user.email,
                 full_name=user.full_name,
+                regisration_id=user.registration_id,
                 desired_name=user.desired_name,
                 reason=payload.reason
             )
