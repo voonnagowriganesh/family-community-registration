@@ -10,6 +10,14 @@ class UserPending(Base):
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
 
+    registration_id = Column(
+    String(20),
+    unique=True,
+    nullable=False,
+    index=True
+)
+
+
     verification_type = Column(Enum("mobile", "email", name="verification_type_enum"), nullable=False)
     mobile_number = Column(String(10), unique=True)
     email = Column(String(150), unique=True)

@@ -6,6 +6,10 @@ from app.models.user_pending import UserPending
 from app.services.pdf_service import generate_pdf
 from app.api.deps import get_db
 from app.models.user_verified import UserVerified
+import uuid
+
+registration_id = f"KGC-{uuid.uuid4().hex[:8].upper()}"
+
 
 
 router = APIRouter(prefix="/users")
@@ -60,18 +64,33 @@ def register_user(payload: UserRegistrationRequest, db: Session = Depends(get_db
     # =========================
     # PDF GENERATION
     # =========================
-    pdf_path = generate_pdf(payload.dict(), language="en")
+    #pdf_path = generate_pdf(payload.dict(), language="en")
+    payload_dict = payload.dict()
+    payload_dict["registration_id"] = registration_id
+
+    pdf_path = generate_pdf(payload_dict, language="en")
+
 
     # =========================
     # SAVE USER (SAFE)
     # =========================
+    # user = UserPending(
+    #     **payload.dict(exclude={"mobile_number", "email"}),
+    #     mobile_number=mobile_number,
+    #     email=email,
+    #     pdf_url=pdf_path,
+    #     is_verified=True
+    # )
+
     user = UserPending(
-        **payload.dict(exclude={"mobile_number", "email"}),
-        mobile_number=mobile_number,
-        email=email,
-        pdf_url=pdf_path,
-        is_verified=True
-    )
+    registration_id=registration_id,   # ✅ ADD HERE
+    **payload.dict(exclude={"mobile_number", "email"}),
+    mobile_number=mobile_number,
+    email=email,
+    pdf_url=pdf_path,
+    is_verified=True
+)
+
 
     db.add(user)
     db.commit()

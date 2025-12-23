@@ -1,3 +1,4 @@
+import uuid
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
@@ -7,3 +8,7 @@ def generate_membership_id(db: Session) -> str:
     ).scalar()
 
     return f"MEM-{int(result):06d}"
+
+
+def generate_registration_id():
+    return f"KGC-{uuid.uuid4().hex[:8].upper()}"

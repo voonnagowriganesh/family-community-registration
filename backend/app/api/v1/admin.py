@@ -874,6 +874,7 @@ def export_approved_users(
     # =========================
     writer.writerow([
         "Membership ID",
+        "Registration ID",
         "Full Name",
         "Surname",
         "Desired Name",
@@ -897,6 +898,7 @@ def export_approved_users(
     for user in users:
         writer.writerow([
             user.membership_id,
+            user.registration_id,
             user.full_name,
             user.surname,
             user.desired_name,
