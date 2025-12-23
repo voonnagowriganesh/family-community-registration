@@ -1,5 +1,6 @@
 from fastapi import APIRouter, UploadFile, File, HTTPException
-from app.services.google_drive import upload_image_to_drive
+from app.services.cloudinary_service import upload_image_to_cloudinary
+
 
 router = APIRouter(
     prefix="/upload",
@@ -9,18 +10,14 @@ router = APIRouter(
 @router.post("/photo")
 async def upload_photo(file: UploadFile = File(...)):
     if file.content_type not in ["image/jpeg", "image/png"]:
-        raise HTTPException(
-            status_code=400,
-            detail="Only JPG and PNG images are allowed"
-        )
+        raise HTTPException(400, "Only JPG and PNG allowed")
 
     file_bytes = await file.read()
 
-    photo_url = upload_image_to_drive(
+    photo_url = upload_image_to_cloudinary(
         file_bytes,
         file.content_type
     )
 
-    return {
-        "photo_url": photo_url
-    }
+    return {"photo_url": photo_url}
+
