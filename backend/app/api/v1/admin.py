@@ -224,6 +224,7 @@ def get_approved_users(
     state: Optional[str] = None,
     district: Optional[str] = None,
     mandal: Optional[str] = None,
+    registration_id: Optional[str] = None,
 
     db: Session = Depends(get_db),
     current_admin: dict = Depends(get_current_admin)
@@ -264,6 +265,8 @@ def get_approved_users(
 
     if mandal:
         query = query.filter(UserVerified.mandal == mandal)
+    if registration_id:
+        query = query.filter(UserVerified.registration_id == registration_id)
 
     # =========================
     # TOTAL COUNT
@@ -319,6 +322,8 @@ def approve_user(user_id: str, db: Session = Depends(get_db),current_admin: dict
 
     verified = UserVerified(
         membership_id=membership_id,
+        registration_id=user.registration_id,
+          # ✅ ADD THIS
         verification_type=user.verification_type,
         mobile_number=user.mobile_number,
         email=user.email,
@@ -376,6 +381,7 @@ def export_users_csv(
     mandal: Optional[str] = None,
     gothram: Optional[str] = None,
     surname: Optional[str] = None,
+    registration_id: Optional[str] = None,
 
     db: Session = Depends(get_db),
     current_admin: dict = Depends(get_current_admin)
@@ -403,6 +409,9 @@ def export_users_csv(
     if surname:
         query = query.filter(UserPending.surname == surname)
 
+    if registration_id:
+        query = query.filter(UserPending.registration_id == registration_id)    
+
     users = query.order_by(UserPending.created_at.desc()).all()
 
     # =========================
@@ -414,6 +423,7 @@ def export_users_csv(
     # Header
     writer.writerow([
         "Membership ID",
+        "Registration ID",
         "Full Name",
         "Surname",
         "Gothram",
@@ -432,6 +442,7 @@ def export_users_csv(
     for user in users:
         writer.writerow([
             getattr(user, "membership_id", ""),
+            getattr(user, "registration_id", ""),
             getattr(user, "full_name", ""),
             getattr(user, "surname", ""),
             getattr(user, "gothram", ""),
@@ -490,6 +501,7 @@ def bulk_approve_users(
 
             verified_user = UserVerified(
                 membership_id=membership_id,
+                registration_id=user.registration_id,
                 verification_type=user.verification_type,
                 mobile_number=user.mobile_number,
                 email=user.email,
