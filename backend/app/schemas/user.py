@@ -14,13 +14,14 @@ class UserRegistrationRequest(BaseModel):
     email: Optional[EmailStr] 
 
     full_name: str
-    surname: str
+    surname: str  # Mothers Maiden Name as Surname
     desired_name: str
     father_or_husband_name: str
     mother_name: str
     date_of_birth: Optional[date]
 
     gender: Optional[str]
+    marital_status: Optional[str] = "Prefer not to say"
     blood_group: Optional[str]
 
     gothram: str
@@ -30,13 +31,22 @@ class UserRegistrationRequest(BaseModel):
     education: str
     occupation: str
 
-    house_number: Optional[str]
-    village_city: str
-    mandal: str
-    district: str
-    state: str
-    country: Optional[str] = "India"
-    pin_code: str
+    current_house_number: Optional[str]
+    current_village_city: Optional[str]
+    current_mandal: Optional[str]
+    current_district: str
+    current_state: str
+    current_country: Optional[str] = "India"
+    current_pin_code: str
+
+    native_house_number: Optional[str]
+    native_village_city: Optional[str]
+    native_mandal: Optional[str]
+    native_district: str
+    native_state: str
+    native_country: Optional[str] = "India"
+    native_pin_code: str
+
 
     photo_url: str
 
