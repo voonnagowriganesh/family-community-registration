@@ -1,4 +1,4 @@
-from pydantic import root_validator
+from pydantic import BaseModel, model_validator
 from sqlalchemy import Column, String, Boolean, Date, Text, Enum, DateTime
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.sql import func
@@ -81,9 +81,11 @@ class UserPending(Base):
 
 
 
-    @root_validator
-    def check_city_or_mandal(cls, values):
-        if not values.get("current_village_city") and not values.get("current_mandal"):
-            raise ValueError("Either current village/city or mandal is required")
-        return values
+    @model_validator(mode="after")
+    def check_city_or_mandal(self):
+        if not self.current_village_city and not self.current_mandal:
+            raise ValueError(
+                "Either current village/city or mandal is required"
+            )
+        return self
 
