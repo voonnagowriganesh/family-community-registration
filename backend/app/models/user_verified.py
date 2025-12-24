@@ -35,13 +35,28 @@ class UserVerified(Base):
     education = Column(String(120), nullable=False)
     occupation = Column(String(120), nullable=False)
 
-    house_number = Column(String(60))
-    village_city = Column(String(120), nullable=False)
-    mandal = Column(String(120), nullable=False)
-    district = Column(String(120), nullable=False)
-    state = Column(String(120), nullable=False)
-    country = Column(String(120), default="India")
-    pin_code = Column(String(10), nullable=False)
+    marital_status = Column(
+    Enum("Married", "Unmarried", "Prefer not to say", name="marital_status_enum"),
+    nullable=False
+    )
+
+    # Current Address
+    current_house_number = Column(String(60))
+    current_village_city = Column(String(120), nullable=True)
+    current_mandal = Column(String(120), nullable=True)
+    current_district = Column(String(120), nullable=False)
+    current_state = Column(String(120), nullable=False)
+    current_country = Column(String(120), default="India")
+    current_pin_code = Column(String(10), nullable=False)
+
+    #Native Address
+    native_house_number = Column(String(60), nullable=False)
+    native_village_city = Column(String(120), nullable=True)
+    native_mandal = Column(String(120), nullable=True)
+    native_district = Column(String(120), nullable=False)
+    native_state = Column(String(120), nullable=False)
+    native_country = Column(String(120), default="India")
+    native_pin_code = Column(String(10),nullable=False)
 
     photo_url = Column(Text, nullable=False)
     pdf_url = Column(Text, nullable=False)
@@ -53,4 +68,7 @@ class UserVerified(Base):
     approved_at = Column(DateTime, server_default=func.now())
     # ✅ ADD THESE TWO (MISSING)
     approved_by = Column(UUID(as_uuid=True), nullable=True)
+
+
+    
     

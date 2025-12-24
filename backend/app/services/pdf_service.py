@@ -114,12 +114,13 @@ def generate_attractive_pdf(data: dict, language: str = "en") -> str:
     
     personal_data = [
         ["Full Name:", data.get("full_name", "N/A")],
-        ["Surname:", Paragraph(f"<b>{data.get('surname', 'N/A')}</b>", styles['Normal'])],
         ["Desired Name:", data.get("desired_name", "N/A")],
         ["Father/Husband Name:", data.get("father_or_husband_name", "N/A")],
         ["Mother Name:", data.get("mother_name", "N/A")],
+        ["Mother’s Maiden Name:", Paragraph(f"<b>{data.get('surname', 'N/A')}</b>", styles['Normal'])],
         ["Date of Birth:", data.get("date_of_birth", "N/A")],
         ["Gender:", data.get("gender", "N/A")],
+        ["Marital Status:", data.get("marital_status", "N/A")],
         ["Blood Group:", Paragraph(f"<font color='red'><b>{data.get('blood_group', 'N/A')}</b></font>", styles['Normal'])],
         ["Gothram:", data.get("gothram", "N/A")],
         ["Aaradhya Daiva:", data.get("aaradhya_daiva", "N/A")],
@@ -173,19 +174,29 @@ def generate_attractive_pdf(data: dict, language: str = "en") -> str:
     elements.append(Spacer(1, 30))
     
     # Address Information Section
-    elements.append(Paragraph("Address Details", styles['SectionHeader']))
+    elements.append(Paragraph("Current Address Details", styles['SectionHeader']))
     
-    address_data = [
-        ["House Number:", data.get("house_number", "N/A")],
-        ["Village/City:", data.get("village_city", "N/A")],
-        ["Mandal:", data.get("mandal", "N/A")],
-        ["District:", data.get("district", "N/A")],
-        ["State:", data.get("state", "N/A")],
-        ["Country:", data.get("country", "N/A")],
-        ["PIN Code:", data.get("pin_code", "N/A")],
+    current_address_data = [
+        ["House Number:", data.get("current_house_number", "N/A")],
+        ["Village/City:", data.get("current_village_city", "N/A")],
+        ["Mandal:", data.get("current_mandal", "N/A")],
+        ["District:", data.get("current_district", "N/A")],
+        ["State:", data.get("current_state", "N/A")],
+        ["Country:", data.get("current_country", "N/A")],
+        ["PIN Code:", data.get("current_pin_code", "N/A")],
+    ]
+
+    native_address_data = [
+        ["House Number:", data.get("native_house_number", "N/A")],
+        ["Village/City:", data.get("native_village_city", "N/A")],
+        ["Mandal:", data.get("native_mandal", "N/A")],
+        ["District:", data.get("native_district", "N/A")],
+        ["State:", data.get("native_state", "N/A")],
+        ["Country:", data.get("native_country", "N/A")],
+        ["PIN Code:", data.get("native_pin_code", "N/A")],
     ]
     
-    address_table = Table(address_data, colWidths=[2*inch, 4.5*inch])
+    address_table = Table(current_address_data, colWidths=[2*inch, 4.5*inch])
     address_table.setStyle(TableStyle([
         ('BACKGROUND', (0, 0), (0, -1), colors.HexColor('#dcfce7')),
         ('BACKGROUND', (1, 0), (1, -1), colors.HexColor('#f0fdf4')),
@@ -202,7 +213,28 @@ def generate_attractive_pdf(data: dict, language: str = "en") -> str:
     
     elements.append(address_table)
     elements.append(Spacer(1, 30))
-    
+
+    # Native Address Information Section
+    elements.append(Paragraph("Native Address Details", styles['SectionHeader']))
+
+    native_address_table = Table(native_address_data, colWidths=[2*inch, 4.5*inch])
+    native_address_table.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (0, -1), colors.HexColor('#dcfce7')),
+        ('BACKGROUND', (1, 0), (1, -1), colors.HexColor('#f0fdf4')),
+        ('TEXTCOLOR', (0, 0), (-1, -1), colors.black),
+        ('ALIGN', (0, 0), (0, -1), 'LEFT'),
+        ('ALIGN', (1, 0), (1, -1), 'LEFT'),
+        ('FONTNAME', (0, 0), (0, -1), 'Helvetica-Bold'),
+        ('FONTSIZE', (0, 0), (-1, -1), 10),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
+        ('TOPPADDING', (0, 0), (-1, -1), 8),
+        ('GRID', (0, 0), (-1, -1), 1, colors.HexColor('#86efac')),
+        ('BOX', (0, 0), (-1, -1), 1, colors.HexColor('#22c55e')),
+    ]))
+
+    elements.append(native_address_table)
+    elements.append(Spacer(1, 30))
+
     # Contact Information Section
     elements.append(Paragraph("Contact Information", styles['SectionHeader']))
     

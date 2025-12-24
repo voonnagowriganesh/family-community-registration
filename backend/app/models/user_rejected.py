@@ -33,19 +33,30 @@ class UserRejected(Base):
     gender = Column(String(20))
     blood_group = Column(String(10))
 
+    marital_status = Column(String(30))
+
     # Community
     gothram = Column(String(120))
     aaradhya_daiva = Column(String(120))
     kula_devata = Column(String(120))
 
-    # Address
-    house_number = Column(String(60))
-    village_city = Column(String(120))
-    mandal = Column(String(120))
-    district = Column(String(120))
-    state = Column(String(120))
-    country = Column(String(120))
-    pin_code = Column(String(10))
+    # Current Address
+    current_house_number = Column(String(60))
+    current_village_city = Column(String(120))
+    current_mandal = Column(String(120))
+    current_district = Column(String(120))
+    current_state = Column(String(120))
+    current_country = Column(String(120))
+    current_pin_code = Column(String(10))
+
+    # Native Address
+    native_house_number = Column(String(60))
+    native_village_city = Column(String(120))
+    native_mandal = Column(String(120))
+    native_district = Column(String(120))
+    native_state = Column(String(120))
+    native_country = Column(String(120))
+    native_pin_code = Column(String(10))
 
     # Education & work
     education = Column(String(120))

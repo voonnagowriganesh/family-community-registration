@@ -4,7 +4,7 @@ from app.schemas.admin_bulk import BulkUserActionRequest
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from app.schemas.admin import AdminLoginRequest, AdminLoginResponse
-from app.core.database import SessionLocal
+
 from app.core.security import verify_password, create_access_token
 from app.models.admin_user import AdminUser
 from app.models.user_verified import UserVerified
@@ -41,13 +41,13 @@ def build_user_query(
     query = db.query(UserPending).filter(UserPending.status == status)
 
     if state:
-        query = query.filter(UserPending.state == state)
+        query = query.filter(UserPending.current_state == state)
 
     if district:
-        query = query.filter(UserPending.district == district)
+        query = query.filter(UserPending.current_district == district)
 
     if mandal:
-        query = query.filter(UserPending.mandal == mandal)
+        query = query.filter(UserPending.current_mandal == mandal)
 
     if gothram:
         query = query.filter(UserPending.gothram.ilike(f"%{gothram}%"))
@@ -164,17 +164,19 @@ def get_pending_users(
     # =========================
     # FILTERS
     # =========================
+    
+
     if state:
-        query = query.filter(UserPending.state == state)
+        query = query.filter(UserPending.current_state == state)
 
     if desired_name:
-        query = query.filter(UserVerified.desired_name.ilike(f"%{desired_name}%"))
+        query = query.filter(UserPending.desired_name.ilike(f"%{desired_name}%"))
 
     if district:
-        query = query.filter(UserPending.district == district)
+        query = query.filter(UserPending.current_district == district)
 
     if mandal:
-        query = query.filter(UserPending.mandal == mandal)
+        query = query.filter(UserPending.current_mandal == mandal)
 
     if gothram:
         query = query.filter(UserPending.gothram.ilike(f"%{gothram}%"))
@@ -258,13 +260,14 @@ def get_approved_users(
         query = query.filter(UserVerified.gothram.ilike(f"%{gothram}%"))
 
     if state:
-        query = query.filter(UserVerified.state == state)
+        query = query.filter(UserVerified.current_state == state)
+
 
     if district:
-        query = query.filter(UserVerified.district == district)
+        query = query.filter(UserVerified.current_district == district)
 
     if mandal:
-        query = query.filter(UserVerified.mandal == mandal)
+        query = query.filter(UserVerified.current_mandal == mandal)
     if registration_id:
         query = query.filter(UserVerified.registration_id == registration_id)
 
@@ -334,19 +337,30 @@ def approve_user(user_id: str, db: Session = Depends(get_db),current_admin: dict
         mother_name=user.mother_name,
         date_of_birth=user.date_of_birth,
         gender=user.gender,
+        marital_status=user.marital_status,
         blood_group=user.blood_group,
         gothram=user.gothram,
         aaradhya_daiva=user.aaradhya_daiva,
         kula_devata=user.kula_devata,
         education=user.education,
         occupation=user.occupation,
-        house_number=user.house_number,
-        village_city=user.village_city,
-        mandal=user.mandal,
-        district=user.district,
-        state=user.state,
-        country=user.country,
-        pin_code=user.pin_code,
+        # Current Address
+        current_house_number=user.current_house_number,
+        current_village_city=user.current_village_city,
+        current_mandal=user.current_mandal,
+        current_district=user.current_district,
+        current_state=user.current_state,
+        current_country=user.current_country,
+        current_pin_code=user.current_pin_code,
+        # Native Address    
+        native_house_number=user.native_house_number,
+        native_village_city=user.native_village_city,
+        native_mandal=user.native_mandal,
+        native_district=user.native_district,
+        native_state=user.native_state,
+        native_country=user.native_country,
+        native_pin_code=user.native_pin_code,
+        # Photo
         photo_url=user.photo_url,
         pdf_url=user.pdf_url,
         referred_by_name=user.referred_by_name,
@@ -395,13 +409,13 @@ def export_users_csv(
     # FILTERS
     # =========================
     if state:
-        query = query.filter(UserPending.state == state)
+        query = query.filter(UserPending.current_state == state)
 
     if district:
-        query = query.filter(UserPending.district == district)
+        query = query.filter(UserPending.current_district == district)
 
     if mandal:
-        query = query.filter(UserPending.mandal == mandal)
+        query = query.filter(UserPending.current_mandal == mandal)
 
     if gothram:
         query = query.filter(UserPending.gothram.ilike(f"%{gothram}%"))
@@ -425,15 +439,15 @@ def export_users_csv(
         "Membership ID",
         "Registration ID",
         "Full Name",
-        "Surname",
+        "Mothers Maiden Name as Surname",
         "Gothram",
         "Mobile",
         "Email",
-        "Address",
-        "State",
-        "District",
-        "Mandal",
-        "Pincode",
+        "Current Address",
+        "Current State",
+        "Current District",
+        "Current Mandal",
+        "Current Pincode",
         "Status",
         "Registered Date",
         "Approved Date"
@@ -448,11 +462,13 @@ def export_users_csv(
             getattr(user, "gothram", ""),
             getattr(user, "mobile_number", ""),
             getattr(user, "email", ""),
-            getattr(user, "address", ""),
-            getattr(user, "state", ""),
-            getattr(user, "district", ""),
-            getattr(user, "mandal", ""),
-            getattr(user, "pincode", ""),
+            #getattr(user, "current_house_number", "") + " " + getattr(user, "current_village_city", ""),
+            f"{user.current_house_number or ''} {user.current_village_city or ''}".strip(),
+
+            getattr(user, "current_state", ""),
+            getattr(user, "current_district", ""),
+            getattr(user, "current_mandal", ""),
+            getattr(user, "current_pin_code", ""),
             getattr(user, "status", ""),
             user.created_at.strftime("%Y-%m-%d %H:%M:%S") if user.created_at else "",
             user.approved_at.strftime("%Y-%m-%d %H:%M:%S") if hasattr(user, "approved_at") and user.approved_at else ""
@@ -506,25 +522,36 @@ def bulk_approve_users(
                 mobile_number=user.mobile_number,
                 email=user.email,
                 full_name=user.full_name,
-                surname=user.surname,
+                surname=user.surname, # Mothers Maiden Name as Surname
                 desired_name=user.desired_name,
                 father_or_husband_name=user.father_or_husband_name,
                 mother_name=user.mother_name,
                 date_of_birth=user.date_of_birth,
                 gender=user.gender,
+                marital_status=user.marital_status,
                 blood_group=user.blood_group,
                 gothram=user.gothram,
                 aaradhya_daiva=user.aaradhya_daiva,
                 kula_devata=user.kula_devata,
                 education=user.education,
                 occupation=user.occupation,
-                house_number=user.house_number,
-                village_city=user.village_city,
-                mandal=user.mandal,
-                district=user.district,
-                state=user.state,
-                country=user.country,
-                pin_code=user.pin_code,
+                # Current Address
+                current_house_number=user.current_house_number,
+                current_village_city=user.current_village_city,
+                current_mandal=user.current_mandal,
+                current_district=user.current_district,
+                current_state=user.current_state,
+                current_country=user.current_country,
+                current_pin_code=user.current_pin_code,
+                # Native Address
+                native_house_number=user.native_house_number,
+                native_village_city=user.native_village_city,
+                native_mandal=user.native_mandal,
+                native_district=user.native_district,
+                native_state=user.native_state,
+                native_country=user.native_country,
+                native_pin_code=user.native_pin_code,
+                # Photo
                 photo_url=user.photo_url,
                 pdf_url=user.pdf_url,
                 referred_by_name=user.referred_by_name,
@@ -657,26 +684,39 @@ def bulk_reject_users(
             mobile_number=user.mobile_number,
             email=user.email,
             full_name=user.full_name,
-            surname=user.surname,
+            surname=user.surname,  # Mothers Maiden Name as Surname
             desired_name=user.desired_name,
             father_or_husband_name=user.father_or_husband_name,
             mother_name=user.mother_name,
             date_of_birth=user.date_of_birth,
             gender=user.gender,
             blood_group=user.blood_group,
+            marital_status=user.marital_status,
+            # Community
             gothram=user.gothram,
             aaradhya_daiva=user.aaradhya_daiva,
             kula_devata=user.kula_devata,
             education=user.education,
             occupation=user.occupation,
-            house_number=user.house_number,
-            village_city=user.village_city,
-            mandal=user.mandal,
-            district=user.district,
-            state=user.state,
-            country=user.country,
-            pin_code=user.pin_code,
+            # Current Address
+            current_house_number=user.current_house_number,
+            current_village_city=user.current_village_city,
+            current_mandal=user.current_mandal,
+            current_district=user.current_district,
+            current_state=user.current_state,
+            current_country=user.current_country,
+            current_pin_code=user.current_pin_code,
+            # Native Address
+            native_house_number=user.native_house_number,
+            native_village_city=user.native_village_city,
+            native_mandal=user.native_mandal,
+            native_district=user.native_district,
+            native_state=user.native_state,
+            native_country=user.native_country,
+            native_pin_code=user.native_pin_code,
+            # Photo
             photo_url=user.photo_url,
+            # Referral
             referred_by_name=user.referred_by_name,
             referred_mobile=user.referred_mobile,
             reject_reason=payload.reason,
@@ -785,12 +825,19 @@ def admin_dashboard_summary(
         .scalar()
     )
 
+    # rejected_count = (
+    #     db.query(func.count())
+    #     .select_from(UserPending)
+    #     .filter(UserPending.status == "rejected")
+    #     .scalar()
+    # )
+
     rejected_count = (
-        db.query(func.count())
-        .select_from(UserPending)
-        .filter(UserPending.status == "rejected")
-        .scalar()
+    db.query(func.count())
+    .select_from(UserRejected)
+    .scalar()
     )
+
 
     approved_count = (
         db.query(func.count())
@@ -878,18 +925,18 @@ def export_approved_users(
         "Membership ID",
         "Registration ID",
         "Full Name",
-        "Surname",
+        "Mothers Maiden Name as Surname",
         "Desired Name",
         "Gothram",
         "Mobile",
         "Email",
-        "House No",
-        "Village / City",
-        "Mandal",
-        "District",
-        "State",
-        "Country",
-        "Pincode",
+        "Current House No",
+        "Current Village / City",
+        "Current Mandal",
+        "Current District",
+        "Current State",
+        "Current Country",
+        "Current Pincode",
         "Approved By",
         "Approved Date"
     ])
@@ -907,13 +954,13 @@ def export_approved_users(
             user.gothram,
             user.mobile_number,
             user.email,
-            user.house_number,
-            user.village_city,
-            user.mandal,
-            user.district,
-            user.state,
-            user.country,
-            user.pin_code,
+            user.current_house_number,
+            user.current_village_city,
+            user.current_mandal,
+            user.current_district,
+            user.current_state,
+            user.current_country,
+            user.current_pin_code,
             user.approved_by,
             user.approved_at
         ])
