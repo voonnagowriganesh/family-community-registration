@@ -436,7 +436,7 @@ def export_users_csv(
 
     # Header
     writer.writerow([
-        "Membership ID",
+        
         "Registration ID",
         "Full Name",
         "Mothers Maiden Name as Surname",
@@ -455,7 +455,7 @@ def export_users_csv(
 
     for user in users:
         writer.writerow([
-            getattr(user, "membership_id", ""),
+            
             getattr(user, "registration_id", ""),
             getattr(user, "full_name", ""),
             getattr(user, "surname", ""),

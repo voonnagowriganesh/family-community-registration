@@ -10,7 +10,9 @@ from app.services.sms_service import send_otp_sms
 from app.services.email_service import send_otp_email
 from app.models.user_pending import UserPending
 from app.models.user_verified import UserVerified
+from fastapi import BackgroundTasks
 
+from app.services.otp_cleanup_service import cleanup_expired_otps
 
 
 router = APIRouter(prefix="/auth")
@@ -69,7 +71,14 @@ class VerifyOTPRequest(BaseModel):
 
 
 @router.post("/send-otp")
-def send_otp(payload: SendOTPRequest, db: Session = Depends(get_db)):
+def send_otp(payload: SendOTPRequest, 
+             background_tasks: BackgroundTasks,
+             db: Session = Depends(get_db)):
+    
+    # 🧹 CLEAN EXPIRED OTPs FIRST
+    cleanup_expired_otps(db)
+    
+
     if payload.type not in ["mobile", "email"]:
         raise HTTPException(status_code=400, detail="Invalid verification type")
     
@@ -132,6 +141,9 @@ def send_otp(payload: SendOTPRequest, db: Session = Depends(get_db)):
                 status_code=429,
                 detail="Please wait 60 seconds before requesting another OTP"
             )
+    
+    
+
 
     # 3️⃣ GENERATE OTP
     otp = generate_otp()
@@ -149,10 +161,12 @@ def send_otp(payload: SendOTPRequest, db: Session = Depends(get_db)):
 
     # 4️⃣ SEND OTP
     if payload.type == "mobile":
-        send_otp_sms(payload.value, otp)
+        #send_otp_sms(payload.value, otp)
+        background_tasks.add_task(send_otp_sms, payload.value, otp)
 
     elif payload.type == "email":
-        send_otp_email(payload.value, otp)
+        #send_otp_email(payload.value, otp)
+        background_tasks.add_task(send_otp_email, payload.value, otp)
 
     return {
         "message": f"OTP sent successfully via {payload.type}"

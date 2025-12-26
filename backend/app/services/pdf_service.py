@@ -12,7 +12,9 @@ from reportlab.lib.enums import TA_CENTER, TA_LEFT
 BASE_URL = "https://family-community-registration-production.up.railway.app"
 
 def generate_attractive_pdf(data: dict, language: str = "en") -> str:
-    file_name = f"{uuid.uuid4()}.pdf"
+    #file_name = f"{uuid.uuid4()}.pdf"
+    registration_id = data["registration_id"]
+    file_name = f"{registration_id}.pdf"
     output_dir = os.path.join("media", "pdfs")
     os.makedirs(output_dir, exist_ok=True)
     file_path = os.path.join(output_dir, file_name)
@@ -308,7 +310,7 @@ def generate_attractive_pdf(data: dict, language: str = "en") -> str:
     doc.build(elements)
     
     # Return public URL
-    return f"{BASE_URL}/media/pdfs/{file_name}"
+    return f"/media/pdfs/{file_name}"
 
 
 # For backward compatibility

@@ -7,6 +7,7 @@ from app.services.pdf_service import generate_pdf
 from app.api.deps import get_db
 from app.models.user_verified import UserVerified
 import uuid
+from fastapi import BackgroundTasks
 
 
 
@@ -15,7 +16,9 @@ import uuid
 router = APIRouter(prefix="/users")
 
 @router.post("/register")
-def register_user(payload: UserRegistrationRequest, db: Session = Depends(get_db)):
+def register_user(payload: UserRegistrationRequest,
+                  background_tasks: BackgroundTasks,
+                  db: Session = Depends(get_db)):
 
     # =========================
     # NORMALIZE INPUT (CRITICAL)
@@ -70,7 +73,9 @@ def register_user(payload: UserRegistrationRequest, db: Session = Depends(get_db
     registration_id = f"KGC-{uuid.uuid4().hex[:8].upper()}"
     payload_dict["registration_id"] = registration_id
 
-    pdf_path = generate_pdf(payload_dict, language="en")
+    pdf_path = f"/media/pdfs/{registration_id}.pdf"
+
+    #pdf_path = generate_pdf(payload_dict, language="en")
 
 
     # =========================
@@ -97,6 +102,9 @@ def register_user(payload: UserRegistrationRequest, db: Session = Depends(get_db
     db.add(user)
     db.commit()
     db.refresh(user)
+
+    # ✅ move PDF to background
+    background_tasks.add_task(generate_pdf, payload_dict)
 
     return {
         "message": "Registration submitted successfully",
