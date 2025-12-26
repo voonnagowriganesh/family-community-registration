@@ -63,6 +63,9 @@ def send_approval_email(
         <div style="max-width:600px; margin:auto; background:#ffffff; padding:20px; border-radius:6px;">
           
           <h2 style="color:#2c3e50;">🎉 Membership Approved</h2>
+          <p style="font-size:16px; font-weight:bold; color:#2c3e50;">
+            Welcome to <span style="color:#27ae60;">KANAGALA CHARITABLE TRUST</span>
+          </p>
 
           <p>Dear <b>{desired_name}</b>,</p>
 

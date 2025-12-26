@@ -20,7 +20,8 @@ from app.services.email_service import send_rejection_email
 from app.models.user_pending import UserPending
 from app.models.user_rejected import UserRejected
 from app.models.admin_audit_log import AdminAuditLog
-
+from fastapi import BackgroundTasks
+from app.api.admin_permissions import require_roles
 
 #---
 from datetime import date
@@ -142,6 +143,7 @@ def get_pending_users(
     db: Session = Depends(get_db),
     current_admin: dict = Depends(get_current_admin)
 ):
+    require_roles(current_admin, ["super_admin", "verifier"])
     # =========================
     # PAGINATION GUARDS
     # =========================
@@ -231,6 +233,8 @@ def get_approved_users(
     db: Session = Depends(get_db),
     current_admin: dict = Depends(get_current_admin)
 ):
+    
+    require_roles(current_admin, ["super_admin", "verifier"])
     # =========================
     # PAGINATION GUARDS
     # =========================
@@ -307,6 +311,7 @@ def get_approved_users(
 
 @router.get("/user/{user_id}")
 def get_user_detail(user_id: str, db: Session = Depends(get_db),current_admin: dict = Depends(get_current_admin)):
+    require_roles(current_admin, ["super_admin", "verifier"])
     user = db.query(UserPending).filter(UserPending.id == user_id).first()
     if not user:
         raise HTTPException(404, "User not found")
@@ -316,10 +321,17 @@ def get_user_detail(user_id: str, db: Session = Depends(get_db),current_admin: d
 from app.models.user_verified import UserVerified
 
 @router.post("/user/{user_id}/approve")
-def approve_user(user_id: str, db: Session = Depends(get_db),current_admin: dict = Depends(get_current_admin)):
+def approve_user(user_id: str, 
+                 background_tasks: BackgroundTasks,
+                 db: Session = Depends(get_db),current_admin: dict = Depends(get_current_admin)):
+    
+    require_roles(current_admin, ["super_admin", "verifier"])
     user = db.query(UserPending).filter_by(id=user_id).first()
     if not user:
         raise HTTPException(404, "User not found")
+    
+    if user.status != "pending":
+        raise HTTPException(400, "User not in pending state")
 
     membership_id = generate_membership_id(db)
 
@@ -366,19 +378,39 @@ def approve_user(user_id: str, db: Session = Depends(get_db),current_admin: dict
         referred_by_name=user.referred_by_name,
         referred_mobile=user.referred_mobile,
         feedback=user.feedback,
+
+        # Approval Info
+        approved_by=current_admin.get("sub"),
+        approved_at=datetime.utcnow()
     )
 
-    db.add(verified)
-    # ✅ ADD AUDIT LOG ENTRY
-    audit = AdminAuditLog(
-                admin_id=current_admin.get("sub"),
-                action="APPROVE",
-                target_type="user",
-                target_id=user.id
-            )
-    db.add(audit)
-    db.delete(user)
-    db.commit()
+    try:
+        db.add(verified)
+
+         # ✅ ADD AUDIT LOG ENTRY
+        audit = AdminAuditLog(
+                    admin_id=current_admin.get("sub"),
+                    action="APPROVE",
+                    target_type="user",
+                    target_id=user.id
+                )
+        
+        background_tasks.add_task(
+        send_approval_email,
+        user.email,
+        user.desired_name or user.full_name,
+        membership_id
+        )
+
+        
+
+        db.add(audit)
+        db.delete(user)
+        db.commit()
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(500, "Approval failed")
+
 
     return {
         "message": "User approved successfully",
@@ -400,6 +432,8 @@ def export_users_csv(
     db: Session = Depends(get_db),
     current_admin: dict = Depends(get_current_admin)
 ):
+    
+    require_roles(current_admin, ["super_admin", "verifier"])
     # =========================
     # BASE QUERY (ALL STATUSES)
     # =========================
@@ -490,9 +524,13 @@ def export_users_csv(
 @router.post("/users/bulk-approve")
 def bulk_approve_users(
     payload: BulkUserActionRequest,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     current_admin: dict = Depends(get_current_admin)
 ):
+    
+    require_roles(current_admin, ["super_admin", "verifier"])
+
     if not payload.user_ids:
         raise HTTPException(status_code=400, detail="No users selected")
 
@@ -576,11 +614,15 @@ def bulk_approve_users(
 
             # 📧 SEND APPROVAL EMAIL (safe)
             try:
-                send_approval_email(
-                    to_email=user.email,
-                    desired_name=user.desired_name or user.full_name,
-                    membership_id=membership_id
-                )
+                            
+                            
+                            background_tasks.add_task(
+                send_approval_email,
+                user.email,
+                user.desired_name or user.full_name,
+                membership_id
+            )
+
             except Exception as e:
                 print("EMAIL ERROR:", str(e))  # do NOT fail approval
 
@@ -661,17 +703,33 @@ def bulk_reject_users(
     db: Session = Depends(get_db),
     current_admin: dict = Depends(get_current_admin)
 ):
+    require_roles(current_admin, ["super_admin", "verifier"])
     if not payload.reason:
         raise HTTPException(status_code=400, detail="Reject reason required")
 
+    # users = (
+    #     db.query(UserPending)
+    #     .filter(
+    #         UserPending.id.in_(payload.user_ids),
+    #         UserPending.status == "pending"
+    #     )
+    #     .all()
+    # )
+
     users = (
-        db.query(UserPending)
-        .filter(
-            UserPending.id.in_(payload.user_ids),
-            UserPending.status == "pending"
-        )
-        .all()
+    db.query(UserPending)
+    .filter(
+        UserPending.status == "pending",
+        UserPending.id.in_(payload.user_ids[:10000])
     )
+    .all()
+    )
+
+    for user in users:
+        if user.status != "pending":
+            raise HTTPException(status_code=400, detail="Some users are not in pending state")
+
+
 
     if len(users) != len(payload.user_ids):
         raise HTTPException(status_code=400, detail="Invalid selection")
@@ -763,6 +821,7 @@ def bulk_hold_users(
     db: Session = Depends(get_db),
     current_admin: dict = Depends(get_current_admin)
 ):
+    require_roles(current_admin, ["super_admin", "verifier"])
     if not payload.reason:
         raise HTTPException(status_code=400, detail="Hold reason required")
 
@@ -774,6 +833,10 @@ def bulk_hold_users(
         )
         .all()
     )
+
+    for user in users:
+        if user.status != "pending":
+            raise HTTPException(status_code=400, detail="Some users are not in pending state")
 
     if len(users) != len(payload.user_ids):
         raise HTTPException(status_code=400, detail="Invalid selection")
@@ -805,6 +868,8 @@ def admin_dashboard_summary(
     db: Session = Depends(get_db),
     current_admin: dict = Depends(get_current_admin)
 ):
+    
+    require_roles(current_admin, ["super_admin", "verifier"])
     today = date.today()
 
     # =========================
@@ -903,6 +968,7 @@ def export_approved_users(
     db: Session = Depends(get_db),
     current_admin: dict = Depends(get_current_admin)
 ):
+    require_roles(current_admin, ["super_admin", "verifier"])
     # =========================
     # FETCH APPROVED USERS
     # =========================
