@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from app.schemas.admin import AdminLoginRequest, AdminLoginResponse
 
-from app.core.security import verify_password, create_access_token
+from app.core.security import hash_password, verify_password, create_access_token
 from app.models.admin_user import AdminUser
 from app.models.user_verified import UserVerified
 from app.api.deps import get_db
@@ -79,6 +79,43 @@ def admin_login(
         "token_type": "bearer"
     }
 
+
+
+
+
+@router.post("/create-admin")
+def create_admin(
+    username: str,
+    password: str,
+    role: str,
+    db: Session = Depends(get_db),
+    current_admin: dict = Depends(get_current_admin)
+):
+    require_roles(current_admin, ["super_admin"])
+
+    if role not in ["super_admin", "verifier", "readonly"]:
+        raise HTTPException(400, "Invalid role")
+
+    existing = db.query(AdminUser).filter(AdminUser.username == username).first()
+    if existing:
+        raise HTTPException(400, "Admin already exists")
+    
+    if len(password) < 8:
+        raise HTTPException(400, "Password too short")
+
+
+    hashed_password = hash_password(password)
+
+    new_admin = AdminUser(
+        username=username,
+        password_hash=hashed_password,
+        role=role
+    )
+
+    db.add(new_admin)
+    db.commit()
+
+    return {"message": "Admin created successfully"}
 
 
 from sqlalchemy import and_
