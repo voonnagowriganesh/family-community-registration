@@ -22,6 +22,7 @@ from app.models.user_rejected import UserRejected
 from app.models.admin_audit_log import AdminAuditLog
 from fastapi import BackgroundTasks
 from app.api.admin_permissions import require_roles
+from app.schemas.admin_manage import AdminResetPasswordRequest, AdminUpdateRoleRequest
 
 #---
 from datetime import date
@@ -116,6 +117,98 @@ def create_admin(
     db.commit()
 
     return {"message": "Admin created successfully"}
+
+
+
+
+@router.put("/admins/{admin_id}/role")
+def update_admin_role(
+    admin_id: str,
+    payload: AdminUpdateRoleRequest,
+    db: Session = Depends(get_db),
+    current_admin: dict = Depends(get_current_admin)
+):
+    require_roles(current_admin, ["super_admin"])
+
+    admin = db.query(AdminUser).filter(AdminUser.id == admin_id).first()
+    if not admin:
+        raise HTTPException(404, "Admin not found")
+
+    admin.role = payload.role
+    db.commit()
+
+    return {"message": "Role updated successfully"}
+
+
+
+@router.put("/admins/{admin_id}/reset-password")
+def reset_admin_password(
+    admin_id: str,
+    payload: AdminResetPasswordRequest,
+    db: Session = Depends(get_db),
+    current_admin: dict = Depends(get_current_admin)
+):
+    require_roles(current_admin, ["super_admin"])
+
+    admin = db.query(AdminUser).filter(AdminUser.id == admin_id).first()
+    if not admin:
+        raise HTTPException(404, "Admin not found")
+
+    admin.password_hash = hash_password(payload.new_password)
+    db.commit()
+
+    return {"message": "Password reset successful"}
+
+
+@router.delete("/admins/{admin_id}")
+def delete_admin(
+    admin_id: str,
+    db: Session = Depends(get_db),
+    current_admin: dict = Depends(get_current_admin)
+):
+    require_roles(current_admin, ["super_admin"])
+
+    if current_admin["sub"] == admin_id:
+        raise HTTPException(400, "You cannot delete yourself")
+    
+    if admin.role == "super_admin":
+        count = db.query(AdminUser).filter(AdminUser.role == "super_admin").count()
+        if count == 1:
+            raise HTTPException(400, "Cannot delete last super admin")
+
+
+    admin = db.query(AdminUser).filter(AdminUser.id == admin_id).first()
+    if not admin:
+        raise HTTPException(404, "Admin not found")
+
+    db.delete(admin)
+    db.commit()
+
+    return {"message": "Admin deleted successfully"}
+
+
+
+#----
+@router.get("/admins")
+def list_admins(
+    db: Session = Depends(get_db),
+    current_admin: dict = Depends(get_current_admin)
+):
+    require_roles(current_admin, ["super_admin"])
+
+    admins = db.query(AdminUser).all()
+
+    return [
+        {
+            "id": a.id,
+            "username": a.username,
+            "role": a.role,
+            "created_at": a.created_at
+        }
+        for a in admins
+    ]
+
+
 
 
 from sqlalchemy import and_
