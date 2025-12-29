@@ -22,7 +22,7 @@ from app.models.user_rejected import UserRejected
 from app.models.admin_audit_log import AdminAuditLog
 from fastapi import BackgroundTasks
 from app.api.admin_permissions import require_roles
-from app.schemas.admin_manage import AdminResetPasswordRequest, AdminUpdateRoleRequest
+from app.schemas.admin_manage import AdminCreateRequest, AdminResetPasswordRequest, AdminUpdateRoleRequest
 
 #---
 from datetime import date
@@ -86,31 +86,29 @@ def admin_login(
 
 @router.post("/create-admin")
 def create_admin(
-    username: str,
-    password: str,
-    role: str,
+    payload: AdminCreateRequest,
     db: Session = Depends(get_db),
     current_admin: dict = Depends(get_current_admin)
 ):
     require_roles(current_admin, ["super_admin"])
 
-    if role not in ["super_admin", "verifier", "readonly"]:
+    if payload.role not in ["super_admin", "verifier", "readonly"]:
         raise HTTPException(400, "Invalid role")
 
-    existing = db.query(AdminUser).filter(AdminUser.username == username).first()
+    existing = db.query(AdminUser).filter(
+        AdminUser.username == payload.username
+    ).first()
+
     if existing:
         raise HTTPException(400, "Admin already exists")
-    
-    if len(password) < 8:
+
+    if len(payload.password) < 8:
         raise HTTPException(400, "Password too short")
 
-
-    hashed_password = hash_password(password)
-
     new_admin = AdminUser(
-        username=username,
-        password_hash=hashed_password,
-        role=role
+        username=payload.username,
+        password_hash=hash_password(payload.password),
+        role=payload.role
     )
 
     db.add(new_admin)
@@ -121,6 +119,26 @@ def create_admin(
 
 
 
+
+# @router.put("/admins/{username}/role")
+# def update_admin_role(
+#     username: str,
+#     payload: AdminUpdateRoleRequest,
+#     db: Session = Depends(get_db),
+#     current_admin: dict = Depends(get_current_admin)
+# ):
+#     require_roles(current_admin, ["super_admin"])
+
+#     admin = db.query(AdminUser).filter(AdminUser.username == username).first()
+
+#     if not admin:
+#         raise HTTPException(404, "Admin not found")
+
+#     admin.role = payload.role
+#     db.commit()
+
+#     return {"message": "Role updated successfully"}
+
 @router.put("/admins/{username}/role")
 def update_admin_role(
     username: str,
@@ -130,10 +148,17 @@ def update_admin_role(
 ):
     require_roles(current_admin, ["super_admin"])
 
+    if payload.role not in ["super_admin", "verifier", "readonly"]:
+        raise HTTPException(400, "Invalid role")
+
     admin = db.query(AdminUser).filter(AdminUser.username == username).first()
 
     if not admin:
         raise HTTPException(404, "Admin not found")
+
+    # Prevent changing your own role
+    if admin.username == current_admin.get("username"):
+        raise HTTPException(400, "You cannot change your own role")
 
     admin.role = payload.role
     db.commit()
@@ -142,6 +167,26 @@ def update_admin_role(
 
 
 
+
+
+# @router.put("/admins/{username}/reset-password")
+# def reset_admin_password(
+#     username: str,
+#     payload: AdminResetPasswordRequest,
+#     db: Session = Depends(get_db),
+#     current_admin: dict = Depends(get_current_admin)
+# ):
+#     require_roles(current_admin, ["super_admin"])
+
+#     admin = db.query(AdminUser).filter(AdminUser.username == username).first()
+
+#     if not admin:
+#         raise HTTPException(404, "Admin not found")
+
+#     admin.password_hash = hash_password(payload.new_password)
+#     db.commit()
+
+#     return {"message": "Password reset successful"}
 
 @router.put("/admins/{username}/reset-password")
 def reset_admin_password(
@@ -152,10 +197,16 @@ def reset_admin_password(
 ):
     require_roles(current_admin, ["super_admin"])
 
+    if len(payload.new_password) < 8:
+        raise HTTPException(400, "Password must be at least 8 characters")
+
     admin = db.query(AdminUser).filter(AdminUser.username == username).first()
 
     if not admin:
         raise HTTPException(404, "Admin not found")
+
+    if admin.username == current_admin.get("username"):
+        raise HTTPException(400, "You cannot reset your own password")
 
     admin.password_hash = hash_password(payload.new_password)
     db.commit()
@@ -163,6 +214,53 @@ def reset_admin_password(
     return {"message": "Password reset successful"}
 
 
+
+
+# @router.delete("/admins/{username}")
+# def delete_admin(
+#     username: str,
+#     db: Session = Depends(get_db),
+#     current_admin: dict = Depends(get_current_admin)
+# ):
+#     require_roles(current_admin, ["super_admin"])
+
+#     admin = db.query(AdminUser).filter(AdminUser.username == username).first()
+
+#     if not admin:
+#         raise HTTPException(status_code=404, detail="Admin not found")
+
+#     # ❌ Prevent self-delete
+#     if admin.id == current_admin.get("sub"):
+#         raise HTTPException(
+#             status_code=400,
+#             detail="You cannot delete your own account"
+#         )
+
+#     total_admins = db.query(AdminUser).count()
+
+#     # ❌ Prevent deleting the last admin
+#     if total_admins <= 1:
+#         raise HTTPException(
+#             status_code=400,
+#             detail="At least one admin must exist"
+#         )
+
+#     # ❌ Prevent deleting the last super admin
+#     if admin.role == "super_admin":
+#         super_admin_count = db.query(AdminUser).filter(
+#             AdminUser.role == "super_admin"
+#         ).count()
+
+#         if super_admin_count <= 1:
+#             raise HTTPException(
+#                 status_code=400,
+#                 detail="Cannot delete the last super admin"
+#             )
+
+#     db.delete(admin)
+#     db.commit()
+
+#     return {"message": "Admin deleted successfully"}
 
 @router.delete("/admins/{username}")
 def delete_admin(
@@ -173,12 +271,11 @@ def delete_admin(
     require_roles(current_admin, ["super_admin"])
 
     admin = db.query(AdminUser).filter(AdminUser.username == username).first()
-
     if not admin:
         raise HTTPException(status_code=404, detail="Admin not found")
 
     # ❌ Prevent self-delete
-    if admin.id == current_admin.get("sub"):
+    if admin.username == current_admin.get("username"):
         raise HTTPException(
             status_code=400,
             detail="You cannot delete your own account"
@@ -186,14 +283,14 @@ def delete_admin(
 
     total_admins = db.query(AdminUser).count()
 
-    # ❌ Prevent deleting the last admin
+    # ❌ Prevent deleting last admin
     if total_admins <= 1:
         raise HTTPException(
             status_code=400,
             detail="At least one admin must exist"
         )
 
-    # ❌ Prevent deleting the last super admin
+    # ❌ Prevent deleting last super admin
     if admin.role == "super_admin":
         super_admin_count = db.query(AdminUser).filter(
             AdminUser.role == "super_admin"
@@ -209,6 +306,7 @@ def delete_admin(
     db.commit()
 
     return {"message": "Admin deleted successfully"}
+
 
 
 
