@@ -121,16 +121,17 @@ def create_admin(
 
 
 
-@router.put("/admins/{admin_id}/role")
+@router.put("/admins/{username}/role")
 def update_admin_role(
-    admin_id: str,
+    username: str,
     payload: AdminUpdateRoleRequest,
     db: Session = Depends(get_db),
     current_admin: dict = Depends(get_current_admin)
 ):
     require_roles(current_admin, ["super_admin"])
 
-    admin = db.query(AdminUser).filter(AdminUser.id == admin_id).first()
+    admin = db.query(AdminUser).filter(AdminUser.username == username).first()
+
     if not admin:
         raise HTTPException(404, "Admin not found")
 
@@ -141,16 +142,18 @@ def update_admin_role(
 
 
 
-@router.put("/admins/{admin_id}/reset-password")
+
+@router.put("/admins/{username}/reset-password")
 def reset_admin_password(
-    admin_id: str,
+    username: str,
     payload: AdminResetPasswordRequest,
     db: Session = Depends(get_db),
     current_admin: dict = Depends(get_current_admin)
 ):
     require_roles(current_admin, ["super_admin"])
 
-    admin = db.query(AdminUser).filter(AdminUser.id == admin_id).first()
+    admin = db.query(AdminUser).filter(AdminUser.username == username).first()
+
     if not admin:
         raise HTTPException(404, "Admin not found")
 
@@ -160,31 +163,54 @@ def reset_admin_password(
     return {"message": "Password reset successful"}
 
 
-@router.delete("/admins/{admin_id}")
+
+@router.delete("/admins/{username}")
 def delete_admin(
-    admin_id: str,
+    username: str,
     db: Session = Depends(get_db),
     current_admin: dict = Depends(get_current_admin)
 ):
     require_roles(current_admin, ["super_admin"])
 
-    if current_admin["sub"] == admin_id:
-        raise HTTPException(400, "You cannot delete yourself")
-    
-    if admin.role == "super_admin":
-        count = db.query(AdminUser).filter(AdminUser.role == "super_admin").count()
-        if count == 1:
-            raise HTTPException(400, "Cannot delete last super admin")
+    admin = db.query(AdminUser).filter(AdminUser.username == username).first()
 
-
-    admin = db.query(AdminUser).filter(AdminUser.id == admin_id).first()
     if not admin:
-        raise HTTPException(404, "Admin not found")
+        raise HTTPException(status_code=404, detail="Admin not found")
+
+    # ❌ Prevent self-delete
+    if admin.id == current_admin.get("sub"):
+        raise HTTPException(
+            status_code=400,
+            detail="You cannot delete your own account"
+        )
+
+    total_admins = db.query(AdminUser).count()
+
+    # ❌ Prevent deleting the last admin
+    if total_admins <= 1:
+        raise HTTPException(
+            status_code=400,
+            detail="At least one admin must exist"
+        )
+
+    # ❌ Prevent deleting the last super admin
+    if admin.role == "super_admin":
+        super_admin_count = db.query(AdminUser).filter(
+            AdminUser.role == "super_admin"
+        ).count()
+
+        if super_admin_count <= 1:
+            raise HTTPException(
+                status_code=400,
+                detail="Cannot delete the last super admin"
+            )
 
     db.delete(admin)
     db.commit()
 
     return {"message": "Admin deleted successfully"}
+
+
 
 
 
